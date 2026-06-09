@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Final Project Grafika Komputer - Kincir Angin Interaktif</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #2c3e50;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+            font-size: 24px;
+            text-align: center;
+        }
+
+        #canvas-container {
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            background: linear-gradient(to bottom, #87CEEB, #E0F6FF);
+            transition: background 1s ease;
+        }
+
+        canvas.night {
+            background: linear-gradient(to bottom, #0f172a, #1e293b);
+        }
+
+        #controls {
+            margin-top: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px 25px;
+            border-radius: 8px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            font-size: 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        input[type=range] {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Final Project Grafika Komputer: Kincir Angin Interaktif</h1>
+
+    <div id="canvas-container">
+        <canvas id="gfxCanvas" width="800" height="500"></canvas>
+    </div>
+
+    <div id="controls">
+        <div class="control-group">
+            <label for="speedSlider">Kecepatan: </label>
+            <input type="range" id="speedSlider" min="0" max="20" value="5">
+        </div>
+        <div class="control-group">
+            <button id="modeBtn">Ubah Waktu (Siang/Malam)</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gfxCanvas');
+        const ctx = canvas.getContext('2d');
+        const speedSlider = document.getElementById('speedSlider');
+        const modeBtn = document.getElementById('modeBtn');
+
+        // State / Variabel Kontrol
+        let angle = 0;
+        let speed = parseFloat(speedSlider.value) / 100;
+        let isNight = false;
+
+        // Event Listener Interaksi
+        speedSlider.addEventListener('input', (e) => {
+            speed = parseFloat(e.target.value) / 100;
+        });
+
+        modeBtn.addEventListener('click', () => {
+            isNight = !isNight;
+            canvas.classList.toggle('night', isNight);
+        });
+
+        // Fungsi Menggambar Lingkungan (Latar Belakang)
+        function drawEnvironment() {
+            // Menggambar Matahari atau Bulan
+            ctx.beginPath();
+            if (!isNight) {
+                // Matahari
+                ctx.arc(700, 80, 40, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffde59';
+                ctx.shadowColor = '#ffde59';
+                ctx.shadowBlur = 30;
+            } else {
+                // Bulan
+                ctx.arc(700, 80, 35, 0, Math.PI * 2);
+                ctx.fillStyle = '#f6f1d5';
+                ctx.shadowColor = '#ffffff';
+                ctx.shadowBlur = 20;
+            }
+            ctx.fill();
+            ctx.shadowBlur = 0; // Reset shadow setelah menggambar bintang/matahari
+
+            // Menggambar Bukit / Tanah
+            ctx.beginPath();
+            ctx.ellipse(400, 550, 600, 150, 0, 0, Math.PI * 2);
+            ctx.fillStyle = isNight ? '#1b4332' : '#2d6a4f';
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.ellipse(150, 520, 400, 100, 0, 0, Math.PI * 2);
+            ctx.fillStyle = isNight ? '#2d6a4f' : '#40916c';
+            ctx.fill();
+        }
+
+        // Fungsi Menggambar Menara Kincir
+        function drawTower(x, y) {
+            ctx.beginPath();
+            ctx.moveTo(x - 25, y);       // Kiri bawah
+            ctx.lineTo(x - 10, y - 160);  // Kiri atas
+            ctx.lineTo(x + 10, y - 160);  // Kanan atas
+            ctx.lineTo(x + 25, y);       // Kanan bawah
+            ctx.closePath();
+            ctx.fillStyle = isNight ? '#475569' : '#cbd5e1';
+            ctx.strokeStyle = isNight ? '#334155' : '#94a3b8';
+            ctx.lineWidth = 3;
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        // Fungsi Menggambar Baling-baling (Rotasi)
+        function drawBlades(x, y) {
+            ctx.save();          // Simpan state canvas asal
+            ctx.translate(x, y); // Geser titik pusat koordinat (0,0) ke poros kincir
+            ctx.rotate(angle);   // Putar canvas berdasarkan nilai angle
+
+            ctx.strokeStyle = isNight ? '#334155' : '#94a3b8';
+            ctx.lineWidth = 2;
+
+            // Gambar 4 bilah baling-baling
+            for (let i = 0; i < 4; i++) {
+                ctx.rotate(Math.PI / 2); // Putar 90 derajat setiap iterasi
+                
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(-12, -130);
+                ctx.lineTo(12, -130);
+                ctx.closePath();
+                ctx.fillStyle = isNight ? '#e2e8f0' : '#ffffff';
+                ctx.fill();
+                ctx.stroke();
+            }
+
+            // Gambar Pin/Poros Tengah Tengah
+            ctx.beginPath();
+            ctx.arc(0, 0, 12, 0, Math.PI * 2);
+            ctx.fillStyle = '#64748b';
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.restore(); // Kembalikan koordinat canvas ke semula
+        }
+
+        // Loop Animasi Utama
+        function animate() {
+            // Bersihkan frame sebelumnya
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Jalankan fungsi menggambar
+            drawEnvironment();
+            
+            const towerX = 400;
+            const towerY = 430;
+            const pivotY = towerY - 160; // Posisi tinggi poros kincir
+
+            drawTower(towerX, towerY);
+            drawBlades(towerX, pivotY);
+
+            // Update sudut putar berdasarkan speed
+            angle += speed;
+
+            // Render ulang terus menerus
+            requestAnimationFrame(animate);
+        }
+
+        // Jalankan program animasi
+        animate();
+    </script>
+</body>
+</html>
